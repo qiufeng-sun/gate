@@ -1,0 +1,7 @@
+.idea/
+*.iml
+*~
+*.swp
+*nohup.out
+*.log
+*.run

@@ -1,0 +1,14 @@
+#beego - v1.7.1
+#https://github.com/astaxie/beego.git      github.com/astaxie/beego		v1.7.1
+
+#redigo
+https://github.com/garyburd/redigo.git     github.com/garyburd/redigo		v1.0.0
+
+#protobuf
+https://github.com/golang/protobuf.git   github.com/golang/protobuf		1f49d83
+
+#util to do use reversion
+https://github.com/qiufeng-sun/util.git        util master
+
+#core to do use reversion
+https://github.com/qiufeng-sun/core.git        core master
