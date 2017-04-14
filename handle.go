@@ -129,19 +129,43 @@ func HandleServerMsg(c *Client, d []byte) {
 	handleMsg(h_fromServer, c, d)
 }
 
-// to do
+//
 func init() {
 	g_handlers[GK_Proc_To] = func(c *Client, d []byte, tag string) bool {
 		switch tag {
-		case GK_To_Self:
+		case GK_To_Self: // to do
+
 		case GK_To_Client:
+			c.SetUrl()
+			if !c.SendBytes(d) {
+				c.Kick()
+				return false
+			}
 		case GK_To_None:
 			c.SetUrl()
-		default: // to spec server
+		case GK_To_Server:
+			dstUrl := c.SelectUrl(tag)
+			if "" == dstUrl {
+				c.Kick()
+				return false
+			}
+			return ToServer(c, dstUrl, d)
+		default:
+			logs.Warn("unknow message target! -- %v", tag)
+			return false
 		}
 
 		return true
 	}
 
-	g_handlers[GK_Proc_Url] = nil
+	g_handlers[GK_Proc_Url] = func(c *Client, d []byte, tag string) bool {
+		c.SetUrlOp(tag)
+		return true
+	}
+
+	g_handlers[GK_Proc_AccId] = func(c *Client, d []byte, tag string) bool {
+		f := c.CurF
+		c.AccId = int(f.AccId)
+		return true
+	}
 }

@@ -39,11 +39,11 @@ func (this *Gate) Init() bool {
 	// 注册消息处理函数
 	Register(this.MsgPkgName, this.MsgNameIdMap)
 
-	// client connect and recv/send msg
-	InitClients()
-
 	// recv/send msg among servers
 	InitServers()
+
+	// client connect and recv/send msg
+	InitClients()
 
 	return true
 }
