@@ -22,7 +22,7 @@ var (
 // 服务器间相关处理
 func InitServers() {
 	// init
-	g_lan = lan.NewLan(&Cfg().LanCfg)
+	g_lan = lan.NewLan(Cfg().LanCfg)
 
 	// reg and watch
 	etcd.RegAndWatchs("gate", &Cfg().EtcdCfg, g_lan.Update)

@@ -17,8 +17,12 @@ var _ = logs.Debug
 
 //
 var (
-	g_dispatcher = dispatcher.New("gate dispatcher", SrvId())
+	g_dispatcher *dispatcher.Dispatcher
 )
+
+func InitDispatcher(srvId string) {
+	g_dispatcher = dispatcher.New("gate dispatcher", srvId)
+}
 
 func addClient(c *Client) {
 	g_dispatcher.Register(c)

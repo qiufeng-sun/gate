@@ -42,6 +42,9 @@ func (this *Gate) Init() bool {
 	// recv/send msg among servers
 	InitServers()
 
+	// init client msg dispatcher
+	InitDispatcher(SrvId())
+
 	// client connect and recv/send msg
 	InitClients()
 

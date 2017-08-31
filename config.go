@@ -1,6 +1,8 @@
 package main
 
 import (
+	"path/filepath"
+
 	"github.com/astaxie/beego/config"
 
 	"util/etcd"
@@ -19,8 +21,46 @@ type Config struct {
 	PlayerMaxLoad int    // 每秒处理的消息上限，超过则踢出
 
 	// server // to do
-	LanCfg  lan.LanCfg
+	LanCfg  *lan.LanCfg
 	EtcdCfg etcd.SrvCfg
+}
+
+func (this *Config) init(fileName string) bool {
+	confd, e := config.NewConfig("ini", fileName)
+	if e != nil {
+		logs.Panicln("load config file failed! file:", fileName, "error:", e)
+	}
+
+	//[scribe]
+	//open=false
+	//addr=localhost:7915
+
+	// player
+	this.PlayerLsnAddr = confd.String("player::lsn_addr")
+	this.PlayerMaxConn = confd.DefaultInt("player::max_conn", 100)
+	this.PlayerMaxLoad = confd.DefaultInt("player::max_load", 100)
+
+	//[server]
+	srvName := confd.String("server::name")
+	srvAddr := confd.String("server::addr")
+	this.LanCfg = lan.NewLanCfg(srvName, srvAddr)
+
+	//[etcd]
+	this.EtcdCfg.EtcdAddrs = confd.Strings("etcd::addrs")
+	this.EtcdCfg.SrvAddr = srvAddr
+	this.EtcdCfg.SrvRegPath = confd.String("etcd::reg_path")
+	this.EtcdCfg.SrvRegUpTick = confd.DefaultInt64("etcd::reg_uptick", 2000)
+
+	this.EtcdCfg.WatchPaths = confd.Strings("etcd::watch_path")
+
+	//#close client notify
+	//close_notify_must=match;data
+	//close_notify_cached=battle
+
+	// echo
+	logs.Info("gate config:%+v", *this)
+
+	return true
 }
 
 //
@@ -33,21 +73,9 @@ func Cfg() *Config {
 //
 func LoadConfig(confPath string) bool {
 	// config
-	confFile := confPath + "gate.ini"
-	confd, e := config.NewConfig("ini", confFile)
-	if e != nil {
-		logs.Panicln("load config file failed! file:", confFile, "error:", e)
-	}
+	confFile := filepath.Clean(confPath + "/gate.ini")
 
-	// player
-	g_config.PlayerLsnAddr = confd.String("player::lsn_addr")
-	g_config.PlayerMaxConn = confd.DefaultInt("player::max_conn", 100)
-	g_config.PlayerMaxLoad = confd.DefaultInt("player::max_load", 100)
-
-	// echo
-	logs.Info("gate config:%+v", g_config)
-
-	return true
+	return g_config.init(confFile)
 }
 
 // to do add check func
