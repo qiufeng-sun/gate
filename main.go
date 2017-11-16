@@ -27,7 +27,7 @@ var _ = logs.Debug
 //  -- tranfer msg to special server which assigned by protobuf target default value
 //  -- cache server info to conn. server info is specified by to client msg
 func main() {
-	defer run.PrintPanic(true)
+	defer run.Recover(true)
 
 	server.Run(NewGate())
 }

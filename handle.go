@@ -9,35 +9,58 @@ import (
 	"util/logs"
 
 	"core/net/socket"
+
+	"share"
 )
 
 var _ = logs.Debug
 
-//
+// message对象gateway参数
 const (
-	// 功能
+	// key
 	GK_Proc_To    = "to"
 	GK_Proc_Url   = "url"
 	GK_Proc_AccId = "accId"
 
 	// to op
 	GK_To_Self   = "self"   // client ping
-	GK_To_Client = "client" // server msg
-	GK_To_None   = "none"   // server msg
-	GK_To_Server = "xx"     // xx为连接到gate的服务器标识。如: logon,battle等
+	GK_To_Client = "client" // from server msg
+	GK_To_None   = "none"   // from server msg
+	GK_To_Logon  = "logon"
+	GK_To_Server = "xx" // xx为连接到gate的服务器标识。如: match,battle等
 
 	// url op: default=rand
 
-	// to client msg
+	// url op -- to client msg
 	GK_Url_Set = "set"
 	GK_Url_Del = "del"
 
-	// to server msg
+	// url op to server msg
 	GK_Url_Auto    = "auto" // fix+rand
 	GK_Url_Rand    = "rand"
 	GK_Url_Fix     = "fix"
 	GK_Url_RandSet = "rand&set"
 )
+
+//
+type hfunc func(*Client, []byte)
+
+func (this hfunc) Handle(receiver interface{}, msgBuff []byte) {
+	this(receiver.(*Client), msgBuff)
+}
+
+//
+type MsgHandler struct {
+	*share.MsgHandler
+}
+
+func NewMsgHandler() *MsgHandler {
+	return &MsgHandler{share.NewMsgHandler()}
+}
+
+func (this *MsgHandler) RegFunc(msgId int32, f func(c *Client, d []byte)) {
+	this.RegHandler(msgId, hfunc(f))
+}
 
 //
 var (
@@ -46,6 +69,7 @@ var (
 	g_handlers   = map[string]func(*Client, []byte, string) bool{}
 )
 
+//
 var getTypeByMsgEnum = func(pkgName, enumName string) reflect.Type {
 	name := strings.Replace(enumName, "ID_", pkgName+".", 1)
 	return proto.MessageType(name)
@@ -79,7 +103,7 @@ func registerHandler(id int32, typ reflect.Type) {
 
 		h, ok := g_handlers[k]
 		if !ok {
-			logs.Panicln("invalid message gateway! msg:", typ.String(), ",key:", k)
+			logs.Panicln("invalid message gateway! msg:", typ.String(), "key:", k)
 		}
 
 		if GK_Proc_To == k && (GK_To_Client == v || GK_To_None == v) {
@@ -121,38 +145,57 @@ func handleMsg(mh *MsgHandler, c *Client, d []byte) {
 
 //
 func HandleClientMsg(c *Client, d []byte) {
+	logs.Debug("receive client msg!")
 	handleMsg(h_fromClient, c, d)
 }
 
 //
 func HandleServerMsg(c *Client, d []byte) {
+	logs.Debug("receive server msg!")
 	handleMsg(h_fromServer, c, d)
 }
 
 //
 func init() {
 	g_handlers[GK_Proc_To] = func(c *Client, d []byte, tag string) bool {
+		logs.Debug("handle to %v", tag)
+
 		switch tag {
 		case GK_To_Self: // to do
 
 		case GK_To_Client:
-			c.SetUrl()
+			c.ProcUrlOp()
 			if !c.SendBytes(d) {
 				c.Kick()
 				return false
 			}
+
 		case GK_To_None:
-			c.SetUrl()
-		case GK_To_Server:
+			c.ProcUrlOp()
+
+		case GK_To_Logon:
+			dstUrl := c.SelectUrl(tag)
+			if "" == dstUrl {
+				logs.Warn("select dstUrl failed! tag:%v", tag)
+				c.Kick()
+				return false
+			}
+			return ToServer(c, dstUrl, d)
+
+		default: // to other servers(except logon)
+			// check account id 1st
+			if !c.IsSetAccId() {
+				logs.Warnln("please logon 1st!")
+				c.Kick()
+				return false
+			}
+
 			dstUrl := c.SelectUrl(tag)
 			if "" == dstUrl {
 				c.Kick()
 				return false
 			}
 			return ToServer(c, dstUrl, d)
-		default:
-			logs.Warn("unknow message target! -- %v", tag)
-			return false
 		}
 
 		return true
@@ -165,7 +208,10 @@ func init() {
 
 	g_handlers[GK_Proc_AccId] = func(c *Client, d []byte, tag string) bool {
 		f := c.CurF
-		c.AccId = int(f.AccId)
+		c.AccId = *f.AccId
+
+		logs.Debug("set accId:%v", c.AccId)
+
 		return true
 	}
 }

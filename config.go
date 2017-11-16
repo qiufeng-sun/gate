@@ -22,7 +22,7 @@ type Config struct {
 
 	// server // to do
 	LanCfg  *lan.LanCfg
-	EtcdCfg etcd.SrvCfg
+	EtcdCfg *etcd.SrvCfg
 }
 
 func (this *Config) init(fileName string) bool {
@@ -46,6 +46,7 @@ func (this *Config) init(fileName string) bool {
 	this.LanCfg = lan.NewLanCfg(srvName, srvAddr)
 
 	//[etcd]
+	this.EtcdCfg = &etcd.SrvCfg{}
 	this.EtcdCfg.EtcdAddrs = confd.Strings("etcd::addrs")
 	this.EtcdCfg.SrvAddr = srvAddr
 	this.EtcdCfg.SrvRegPath = confd.String("etcd::reg_path")
@@ -73,9 +74,19 @@ func Cfg() *Config {
 //
 func LoadConfig(confPath string) bool {
 	// config
-	confFile := filepath.Clean(confPath + "/gate.ini")
+	confFile := filepath.Clean(confPath + "/self.ini")
 
 	return g_config.init(confFile)
+}
+
+//
+func SrvId() string {
+	return Cfg().LanCfg.ServerId()
+}
+
+//
+func SrvName() string {
+	return Cfg().LanCfg.Name
 }
 
 // to do add check func

@@ -1,0 +1,16 @@
+1.登录
+user->gate->login
+玩家连接后，第一条消息发送到登录服务器
+验证通过后，在redis中检查并记录玩家状态
+
+2.serverId: $srvName@ip$$timestamp
+唯一，每次启动都不同
+
+3.url:$serverId#$serial
+$serial:服务器启动后自增序号
+
+4.客户端断连
+
+5.容灾：
+a.gate
+b.logical

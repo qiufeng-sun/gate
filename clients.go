@@ -6,35 +6,16 @@ import (
 	"util/logs"
 	"util/run"
 
+	"core/net"
 	"core/net/dispatcher"
-	"core/net/dispatcher/pb"
 	"core/net/lan"
 	"core/net/msg/protobuf"
 	"core/net/socket"
+
+	"share"
 )
 
 var _ = logs.Debug
-
-//
-var (
-	g_dispatcher *dispatcher.Dispatcher
-)
-
-func InitDispatcher(srvId string) {
-	g_dispatcher = dispatcher.New("gate dispatcher", srvId)
-}
-
-func addClient(c *Client) {
-	g_dispatcher.Register(c)
-}
-
-func removeClient(c *Client) {
-	g_dispatcher.Unregister(c)
-}
-
-func Dispatch(f *pb.PbFrame) {
-	g_dispatcher.Dispatch(f)
-}
 
 // 来自玩家的连接管理// to do 心跳
 type Client struct {
@@ -42,8 +23,8 @@ type Client struct {
 
 	NetId int // user's msg
 
-	AccId int // account id
-	Load  int // 负载
+	AccId int64 // account id
+	Load  int   // 负载
 
 	//
 	urls  map[string]string // serverName=>serverUrl
@@ -61,6 +42,11 @@ func NewClient(netId int) *Client {
 		urls:     map[string]string{},
 		chKick:   make(chan bool, 1),
 	}
+}
+
+//
+func (this *Client) IsSetAccId() bool {
+	return this.AccId != 0
 }
 
 //
@@ -87,8 +73,8 @@ func (this *Client) Kick() {
 //  - 客户端发送给服务器的消息，及ping
 //  - 服务器发给客户端的消息
 func (this *Client) run() {
-	addClient(this)
-	defer removeClient(this)
+	dispatcher.AddUnit(this)
+	defer dispatcher.RemoveUnit(this)
 
 	// client msg receiver
 	receiver := socket.GetMsgReceiver(this.NetId)
@@ -139,7 +125,7 @@ func (this *Client) ResetUrlOp() {
 }
 
 // to client msg call
-func (this *Client) SetUrl() {
+func (this *Client) ProcUrlOp() {
 	op := this.urlOp
 	if "" == op {
 		return
@@ -147,8 +133,8 @@ func (this *Client) SetUrl() {
 
 	switch op {
 	case GK_Url_Set, GK_Url_Del:
-		url := this.CurF.SrcUrl
-		srvId, _, ok := dispatcher.Url2Part(url)
+		url := *this.CurF.SrcUrl
+		srvId, _, ok := net.Url2Part(url)
 		if !ok {
 			logs.Warn("invalid src url! url: %v", url)
 			break
@@ -171,12 +157,12 @@ func (this *Client) SelectUrl(srv string) string {
 	defer this.ResetUrlOp()
 
 	switch this.urlOp {
-	case "", GK_Url_Rand: // rand
-		return SelectRandUrl(srv)
+	case GK_Url_Rand: // rand
+		return share.SelectRandUrl(srv)
 	case GK_Url_Fix: // use cached url
 		return this.urls[srv]
 	case GK_Url_RandSet:
-		url := SelectRandUrl(srv)
+		url := share.SelectRandUrl(srv)
 		if url != "" {
 			this.urls[srv] = url
 		}
@@ -188,7 +174,7 @@ func (this *Client) SelectUrl(srv string) string {
 	if url != "" {
 		return url
 	}
-	return SelectRandUrl(srv)
+	return share.SelectRandUrl(srv)
 }
 
 //
@@ -233,11 +219,11 @@ func updateLogonWait() {
 		// new client
 		client := NewClient(netId)
 
-		// process client// to do 1st param to false?
-		go run.Exec(true, func() {
+		// process client
+		go run.Exec(false, func(client *Client) {
 			defer socket.KickClient(client.NetId)
 			client.run()
-		})
+		}, client)
 	}
 }
 

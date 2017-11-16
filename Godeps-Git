@@ -1,5 +1,5 @@
 #beego - v1.7.1
-#https://github.com/astaxie/beego.git      github.com/astaxie/beego		v1.7.1
+https://github.com/astaxie/beego.git      github.com/astaxie/beego		v1.7.1
 
 #redigo
 https://github.com/garyburd/redigo.git     github.com/garyburd/redigo		v1.0.0
@@ -12,3 +12,15 @@ https://github.com/qiufeng-sun/util.git        util master
 
 #core to do use reversion
 https://github.com/qiufeng-sun/core.git        core master
+
+#mangos
+git@git.n.xiaomi.com:third_party/mangos.git		github.com/go-mangos/mangos		v1.2.0
+
+#etcd
+git@git.n.xiaomi.com:third_party/etcd.git github.com/coreos/etcd v3.0.4
+
+#context for etcd
+git@git.n.xiaomi.com:third_party/net.git golang.org/x/net release-branch.go1.7
+
+#go-codec library for etcd
+git@git.n.xiaomi.com:third_party/codec.git github.com/ugorji/go 5cd0f2b

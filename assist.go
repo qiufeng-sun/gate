@@ -34,7 +34,7 @@ func parseGatewayByType(typ reflect.Type) []string {
 	return parseGateway(gw)
 }
 
-// "set=userId|to=client|cache=data|del_cache=matchurl"
+// "url=set|to=client"
 func parseGateway(tag string) []string {
 	if "" == tag {
 		return nil

@@ -3,13 +3,13 @@ package main
 import (
 	"github.com/golang/protobuf/proto"
 
-	"util/etcd"
 	"util/logs"
-	"util/run"
 
 	"core/net/dispatcher"
 	"core/net/dispatcher/pb"
 	"core/net/lan"
+
+	"share"
 )
 
 var _ = logs.Debug
@@ -21,74 +21,36 @@ var (
 
 // 服务器间相关处理
 func InitServers() {
-	// init
-	g_lan = lan.NewLan(Cfg().LanCfg)
-
-	// reg and watch
-	etcd.RegAndWatchs("gate", &Cfg().EtcdCfg, g_lan.Update)
-
-	// recv msg
-	go run.Exec(true, procSrvMsg)
+	//
+	share.InitLans(Cfg().LanCfg, Cfg().EtcdCfg, func(f *pb.PbFrame) {
+		dispatcher.Dispatch(f, func(dstUrl string) {
+			// 通知offline
+			NoticeServerOffline(dstUrl, *f.SrcUrl)
+		})
+	})
 }
 
-// recv server msg and send it to client
-func procSrvMsg() {
-	for {
-		raw, e := g_lan.Server.Recv()
-		if e != nil {
-			logs.Panicln(e)
-		}
-
-		var f *pb.PbFrame
-		if e := proto.Unmarshal(raw, f); e != nil {
-			logs.Panicln(e)
-		}
-
-		Dispatch(f)
-	}
-}
-
-//
 func ToServer(c *Client, dstUrl string, d []byte) bool {
-	// server
-	srvId, _, ok := dispatcher.Url2Part(dstUrl)
-	if !ok {
-		logs.Warn("invalid url: %v, accId:%v", dstUrl, c.AccId)
-		return false
-	}
-
 	// message
 	f := &pb.PbFrame{
-		SrcUrl:  c.Url,
+		SrcUrl:  proto.String(c.Url),
 		DstUrls: []string{dstUrl},
-		AccId:   int64(c.AccId),
+		AccId:   proto.Int64(c.AccId),
 		MsgRaw:  d,
+		Offline: proto.Bool(false),
 	}
 
-	d, e := proto.Marshal(f)
-	if e != nil {
-		logs.Warn("accId:%v, error:%v", c.AccId, e)
-		return false
-	}
-
-	if e := g_lan.Clients.SendMsg(srvId, d); e != nil {
-		logs.Warn("send msg failed! accId:%v, error:%v", c.AccId, e)
-		return false
-	}
-
-	return true
+	return share.SendFrame2Server(dstUrl, f)
 }
 
 //
-func SelectRandUrl(srv string) string {
-	srvId := g_lan.Clients.SelectRand(srv)
-	if "" == srvId {
-		return ""
+func NoticeServerOffline(srcUrl, dstUrl string) bool {
+	// message
+	f := &pb.PbFrame{
+		SrcUrl:  proto.String(srcUrl),
+		DstUrls: []string{dstUrl},
+		Offline: proto.Bool(true),
 	}
-	return dispatcher.Url(srvId, 0)
-}
 
-//
-func SrvId() string {
-	return g_lan.Server.ServerId()
+	return share.SendFrame2Server(dstUrl, f)
 }
