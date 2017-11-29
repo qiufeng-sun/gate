@@ -7,7 +7,7 @@ import (
 
 	"core/net/dispatcher"
 	"core/net/dispatcher/pb"
-	"core/net/lan"
+	"core/net/lan/pipe"
 
 	"share"
 )
@@ -16,7 +16,7 @@ var _ = logs.Debug
 
 //
 var (
-	g_lan *lan.Lan
+	g_lan *pipe.Lan
 )
 
 // 服务器间相关处理

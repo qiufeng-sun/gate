@@ -26,6 +26,7 @@ const (
 	GK_To_Self   = "self"   // client ping
 	GK_To_Client = "client" // from server msg
 	GK_To_None   = "none"   // from server msg
+	GK_To_Kick   = "kick"   // from server msg
 	GK_To_Logon  = "logon"
 	GK_To_Server = "xx" // xx为连接到gate的服务器标识。如: match,battle等
 
@@ -130,6 +131,7 @@ func handleMsg(mh *MsgHandler, c *Client, d []byte) {
 	id, ok := socket.ParseMsgId(d)
 	if !ok {
 		logs.Warnln("parse msg id failed!")
+		c.Kick()
 		return
 	}
 
@@ -172,6 +174,11 @@ func init() {
 
 		case GK_To_None:
 			c.ProcUrlOp()
+
+		case GK_To_Kick:
+			c.ProcUrlOp()
+			c.Kick()
+			return false
 
 		case GK_To_Logon:
 			dstUrl := c.SelectUrl(tag)
