@@ -10,7 +10,7 @@ import (
 
 	"core/net/socket"
 
-	"share"
+	"share/handler"
 )
 
 var _ = logs.Debug
@@ -52,11 +52,11 @@ func (this hfunc) Handle(receiver interface{}, msgBuff []byte) {
 
 //
 type MsgHandler struct {
-	*share.MsgHandler
+	*handler.MsgHandler
 }
 
 func NewMsgHandler() *MsgHandler {
-	return &MsgHandler{share.NewMsgHandler()}
+	return &MsgHandler{handler.NewMsgHandler()}
 }
 
 func (this *MsgHandler) RegFunc(msgId int32, f func(c *Client, d []byte)) {

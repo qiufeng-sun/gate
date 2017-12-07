@@ -65,28 +65,24 @@ func (this *Config) init(fileName string) bool {
 }
 
 //
-var g_config = &Config{}
-
-func Cfg() *Config {
-	return g_config
-}
+var Cfg = &Config{}
 
 //
 func LoadConfig(confPath string) bool {
 	// config
 	confFile := filepath.Clean(confPath + "/self.ini")
 
-	return g_config.init(confFile)
+	return Cfg.init(confFile)
 }
 
 //
 func SrvId() string {
-	return Cfg().LanCfg.ServerId()
+	return Cfg.LanCfg.ServerId()
 }
 
 //
 func SrvName() string {
-	return Cfg().LanCfg.Name
+	return Cfg.LanCfg.Name
 }
 
 // to do add check func

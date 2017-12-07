@@ -12,7 +12,7 @@ import (
 	"core/net/msg/protobuf"
 	"core/net/socket"
 
-	"share"
+	"share/pipe"
 )
 
 var _ = logs.Debug
@@ -103,7 +103,7 @@ func (this *Client) run() {
 		case d := <-rch: // client msg
 			// check ddos
 			this.Load++
-			if this.Load > Cfg().PlayerMaxLoad {
+			if this.Load > Cfg.PlayerMaxLoad {
 				logs.Warn("kick player! accId:%v, id:%v, netId:%v, load:%v",
 					this.AccId, this.Id, this.NetId, this.Load)
 				return
@@ -158,11 +158,11 @@ func (this *Client) SelectUrl(srv string) string {
 
 	switch this.urlOp {
 	case GK_Url_Rand: // rand
-		return share.SelectRandUrl(srv)
+		return pipe.SelectRandUrl(srv)
 	case GK_Url_Fix: // use cached url
 		return this.urls[srv]
 	case GK_Url_RandSet:
-		url := share.SelectRandUrl(srv)
+		url := pipe.SelectRandUrl(srv)
 		if url != "" {
 			this.urls[srv] = url
 		}
@@ -174,7 +174,7 @@ func (this *Client) SelectUrl(srv string) string {
 	if url != "" {
 		return url
 	}
-	return share.SelectRandUrl(srv)
+	return pipe.SelectRandUrl(srv)
 }
 
 //
@@ -190,11 +190,8 @@ func (this *Client) SendBytes(d []byte) bool {
 
 // 客户端相关处理
 func InitClients() {
-	//
-	cfg := Cfg()
-
 	// listen to players
-	e := socket.Serve(cfg.PlayerLsnAddr, cfg.PlayerMaxConn, &protobuf.PbParser{})
+	e := socket.Serve(Cfg.PlayerLsnAddr, Cfg.PlayerMaxConn, &protobuf.PbParser{})
 	if e != nil {
 		logs.Panicln(e)
 	}

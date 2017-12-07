@@ -7,22 +7,16 @@ import (
 
 	"core/net/dispatcher"
 	"core/net/dispatcher/pb"
-	"core/net/lan/pipe"
 
-	"share"
+	"share/pipe"
 )
 
 var _ = logs.Debug
 
-//
-var (
-	g_lan *pipe.Lan
-)
-
 // 服务器间相关处理
 func InitServers() {
 	//
-	share.InitLans(Cfg().LanCfg, Cfg().EtcdCfg, func(f *pb.PbFrame) {
+	pipe.Init(Cfg.LanCfg, Cfg.EtcdCfg, func(f *pb.PbFrame) {
 		dispatcher.Dispatch(f, func(dstUrl string) {
 			// 通知offline
 			NoticeServerOffline(dstUrl, *f.SrcUrl)
@@ -40,7 +34,7 @@ func ToServer(c *Client, dstUrl string, d []byte) bool {
 		Offline: proto.Bool(false),
 	}
 
-	return share.SendFrame2Server(dstUrl, f)
+	return pipe.SendFrame2Server(dstUrl, f)
 }
 
 //
@@ -52,5 +46,5 @@ func NoticeServerOffline(srcUrl, dstUrl string) bool {
 		Offline: proto.Bool(true),
 	}
 
-	return share.SendFrame2Server(dstUrl, f)
+	return pipe.SendFrame2Server(dstUrl, f)
 }
